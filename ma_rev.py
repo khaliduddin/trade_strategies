@@ -16,17 +16,31 @@ stock_symbols = [
     'TMO', 'AVGO'
 ]
 
+# FOREX STOCKS
+# stock_symbols = [
+#     ''
+# ]
+
 # Fetch the data from Yahoo Finance
 df = {}
 for symbol in stock_symbols:
+    # print(symbol)
     data = yf.download(symbol, start='2015-01-01', end='2023-01-01')
-    df[symbol] = data['Close']
+    # if symbol == 'IBM':
+    #     print(data)
+    # df[symbol] = data['Close']
+    df[symbol] = data
 
+# print('df**********')
+# print(df)
+# print('df**********')
 stationary_stocks = []
 p_values = []  
 
 for symbol, data in df.items():
+    # print('datadata', data.iloc[1])
     result = adfuller(data['Close'])
+    # result = adfuller(data)
     # A p-value less than 0.05 indicates that the data is stationary
     p_value = result[1]
     if p_value <= 0.05:
@@ -38,12 +52,13 @@ for stock, p_value in zip(stationary_stocks, p_values):  # Use zip to iterate ov
     print(f"Stock: {stock}, p-value: {p_value:.4f}")
 
 class MeanReversion(Strategy):
-    n1 = 30  # Period for the moving average
+    n1 = 150  # Period for the moving average
     
     def init(self):
         # Compute moving average
         self.offset = 0.01  # Buy/sell when price is 1% below/above the moving average
         prices = self.data['Close']
+        # prices = self.data.iloc[1]
         self.ma = self.I(self.compute_rolling_mean, prices, self.n1)
 
     def compute_rolling_mean(self, prices, window):
@@ -65,6 +80,10 @@ class MeanReversion(Strategy):
 
 stock_to_backtest = stationary_stocks[0]
 df = df[stock_to_backtest]
+df = pd.DataFrame.from_dict(df)
+# print('df----------')
+# print(df)
+# print('df----------')
 bt = Backtest(df, MeanReversion, cash=100000, commission=.002)
 stats = bt.run()
 # bt.plot()
